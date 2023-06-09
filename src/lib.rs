@@ -1,73 +1,87 @@
+use std::collections::HashSet;
+
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
 use rand::Rng;
-use serde::*;
 use stylers::*;
+use web_sys::{Attr, Event};
 use web_time::Instant;
 
 type SignalPair<T> = (ReadSignal<T>, WriteSignal<T>);
 type Position = (usize, usize);
+type Positions = HashSet<Position, std::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
-struct Record(u64, u64, u128, usize, usize);
+mod record {
+    use serde::*;
+    #[derive(Clone, Copy, Serialize, Deserialize)]
+    pub struct Record(u64, u64, u128, usize, usize);
 
-#[allow(dead_code)]
-impl Record {
-    #[inline]
-    pub const fn new(position: u64, score: u64, millis: u128, rows: usize, columns: usize) -> Self {
-        Self(position, score, millis, rows, columns)
-    }
+    #[allow(dead_code)]
+    impl Record {
+        #[inline]
+        pub const fn new(
+            position: u64,
+            score: u64,
+            millis: u128,
+            rows: usize,
+            columns: usize,
+        ) -> Self {
+            Self(position, score, millis, rows, columns)
+        }
 
-    #[inline]
-    pub const fn position(&self) -> u64 {
-        self.0
-    }
+        #[inline]
+        pub const fn position(&self) -> u64 {
+            self.0
+        }
 
-    #[inline]
-    pub fn set_position(&mut self, value: u64) {
-        self.0 = value;
-    }
+        #[inline]
+        pub fn set_position(&mut self, value: u64) {
+            self.0 = value;
+        }
 
-    #[inline]
-    pub const fn score(&self) -> u64 {
-        self.1
-    }
+        #[inline]
+        pub const fn score(&self) -> u64 {
+            self.1
+        }
 
-    #[inline]
-    pub fn set_score(&mut self, value: u64) {
-        self.1 = value;
-    }
+        #[inline]
+        pub fn set_score(&mut self, value: u64) {
+            self.1 = value;
+        }
 
-    #[inline]
-    pub const fn millis(&self) -> u128 {
-        self.2
-    }
+        #[inline]
+        pub const fn millis(&self) -> u128 {
+            self.2
+        }
 
-    #[inline]
-    pub fn set_millis(&mut self, value: u128) {
-        self.2 = value;
-    }
+        #[inline]
+        pub fn set_millis(&mut self, value: u128) {
+            self.2 = value;
+        }
 
-    #[inline]
-    pub const fn rows(&self) -> usize {
-        self.3
-    }
+        #[inline]
+        pub const fn rows(&self) -> usize {
+            self.3
+        }
 
-    #[inline]
-    pub fn set_rows(&mut self, value: usize) {
-        self.3 = value;
-    }
+        #[inline]
+        pub fn set_rows(&mut self, value: usize) {
+            self.3 = value;
+        }
 
-    #[inline]
-    pub const fn columns(&self) -> usize {
-        self.4
-    }
+        #[inline]
+        pub const fn columns(&self) -> usize {
+            self.4
+        }
 
-    #[inline]
-    pub fn set_columns(&mut self, value: usize) {
-        self.4 = value;
+        #[inline]
+        pub fn set_columns(&mut self, value: usize) {
+            self.4 = value;
+        }
     }
 }
+
+type Record = record::Record;
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
@@ -75,7 +89,10 @@ pub fn App(cx: Scope) -> impl IntoView {
     let rows = create_signal(cx, LocalStorage::get("rows").unwrap_or(3));
     let active = create_signal(cx, LocalStorage::get("active").unwrap_or(3));
 
-    let current = create_signal(cx, Vec::with_capacity(active.0() + 1));
+    let current: SignalPair<Positions> = create_signal(
+        cx,
+        HashSet::with_capacity_and_hasher(active.0() + 1, Default::default()),
+    );
     let history = create_signal(
         cx,
         LocalStorage::get("history").unwrap_or_else(|_| Vec::new()),
@@ -103,29 +120,42 @@ pub fn App(cx: Scope) -> impl IntoView {
     let best_record = create_signal(cx, history_best());
 
     let update_current = move || {
-        let active = active.0().min(columns.0() * rows.0() - 1);
+        let rows = rows.0();
+        let columns = columns.0();
+        let active = active.0().min(columns * rows - 1);
         let mut rng = rand::thread_rng();
+
         current.1.update(|current| {
             current.clear();
             while current.len() < active {
-                let new = (rng.gen_range(0..rows.0()), rng.gen_range(0..columns.0()));
+                let new = (rng.gen_range(0..rows), rng.gen_range(0..columns));
                 if current.contains(&new) {
                     continue;
                 }
 
-                current.push(new);
+                current.insert(new);
             }
         });
     };
 
+    let max_active = create_memo(cx, move |_| rows.0() * columns.0() - 1);
+    let score_text = create_memo(cx, move |_| {
+        format!(
+            "Score: {} ({:.2}/s) / {} ({:.2}/s)",
+            score(),
+            (score() * 1000) as f64 / current_record.0().millis() as f64,
+            history_best().score(),
+            (history_best().score() * 1000) as f64 / history_best().millis() as f64
+        )
+    });
+
     view! { cx,
         <div style="display: flex; justify-content: space-evenly;">
-            <UsizeInput name="rows" label="Rows: " min=2 max=|| usize::MAX signal=rows current=current.1 onchange=update_current />
-            <UsizeInput name="columns" label="Columns: " min=2 max=|| usize::MAX signal=columns current=current.1 onchange=update_current />
-            <UsizeInput name="active" label="Active: " min=1 max=move || rows.0() * columns.0() - 1 signal=active current=current.1 onchange=update_current />
+            <UsizeInput name="rows" label="Rows: " min=2 max=usize::MAX signal=rows current=current.1 onchange=update_current />
+            <UsizeInput name="columns" label="Columns: " min=2 max=usize::MAX signal=columns current=current.1 onchange=update_current />
+            <UsizeInput name="active" label="Active: " min=1 max=max_active signal=active current=current.1 onchange=update_current />
             <button on:click=move |_| {
                 best_record.1.update(|record| {
-                    record.set_millis(0);
                     record.set_millis(0);
                 });
                 history.1.update(|history| {
@@ -137,29 +167,24 @@ pub fn App(cx: Scope) -> impl IntoView {
 
         <Game current={current} history={history} columns={columns.0} rows={rows.0} active={active.0} current_record={current_record} best_record={best_record} />
 
-        <h3 style="text-align: center;">{move || format!("Score: {} ({:.2}/s) / {} ({:.2}/s)",
-            score(),
-            (score() * 1000) as f64 / current_record.0().millis() as f64,
-            history_best().score(), (history_best().score() * 1000) as f64 / history_best().millis() as f64
-        )}</h3>
+        <h3 style="text-align: center;">{score_text}</h3>
         <GameHistory history={history.0} />
     }
 }
 
 #[component]
-fn UsizeInput<F, G>(
+fn UsizeInput<F>(
     cx: Scope,
     name: &'static str,
     label: &'static str,
     min: usize,
-    max: F,
+    #[prop(into)] max: MaybeSignal<usize>,
     signal: SignalPair<usize>,
-    current: WriteSignal<Vec<Position>>,
-    onchange: G,
+    current: WriteSignal<Positions>,
+    onchange: F,
 ) -> impl IntoView
 where
-    F: Fn() -> usize + 'static,
-    G: Fn() + 'static,
+    F: Fn() + 'static,
 {
     view! { cx,
         <span>
@@ -216,7 +241,7 @@ fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
 
             <For
                 each=history
-                key=|record| record.0
+                key=|record| record.position()
                 view=move |cx, record| {
                     view! { cx, class = style,
                         <tr>
@@ -224,7 +249,7 @@ fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
                             <td>{record.score()}</td>
                             <td>{format!("{:.2}", (record.score() * 1000) as f64 / record.millis() as f64)}</td>
                             <td>{format!("{:.2}", record.millis() as f64 / 1000f64)}</td>
-                            <td>{format!("{}x{}", record.rows(), record.columns())}</td>
+                            <td>{format!("{}×{}", record.rows(), record.columns())}</td>
                         </tr>
                     }
                 }
@@ -236,7 +261,7 @@ fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
 #[component]
 fn Game(
     cx: Scope,
-    current: SignalPair<Vec<Position>>,
+    current: SignalPair<Positions>,
     history: SignalPair<Vec<Record>>,
     columns: ReadSignal<usize>,
     rows: ReadSignal<usize>,
@@ -257,14 +282,13 @@ fn Game(
     let mut rng = rand::thread_rng();
     set_current.update(|current| {
         current.clear();
-        let active = active().min(columns() * rows() - 1);
-        while current.len() < active {
+        while current.len() < active() {
             let new = (rng.gen_range(0..rows()), rng.gen_range(0..columns()));
             if current.contains(&new) {
                 continue;
             }
 
-            current.push(new);
+            current.insert(new);
         }
     });
 
@@ -286,43 +310,45 @@ fn Game(
 
             let _ = LocalStorage::set("history", history());
         }
-        set_current_record.update(|record| record.1 = 0);
+        set_current_record.update(|record| record.set_score(0));
     };
 
     let on_input = move |row, col| {
-        if let Some(idx) = current().iter().position(|&pos| pos == (row, col)) {
+        if current().contains(&(row, col)) {
+            let now = Instant::now();
             let mut rng = rand::thread_rng();
             set_current.update(|current| {
-                let active = active().min(columns() * rows() - 1);
-                while current.len() < active + 1 {
-                    let new = (rng.gen_range(0..rows()), rng.gen_range(0..columns()));
-                    if current.contains(&new) {
-                        continue;
-                    }
+                let current_record = current_record();
+                let best_record = best_record();
+                let score = current_record.score();
+                let best_score = best_record.score();
+                let millis = current_record.millis();
+                let best_millis = best_record.millis();
+                let rows = rows();
+                let columns = columns();
 
-                    current.push(new);
-                }
-                current.remove(idx);
-
-                if current_record().score() == 0 {
-                    set_start(Instant::now());
+                if score == 0 {
+                    set_start(now);
                 }
 
                 set_current_record.update(|record| {
-                    record.set_millis((Instant::now() - start()).as_millis());
+                    record.set_millis((now - start()).as_millis());
                     record.set_score(record.score() + 1)
                 });
 
-                let score = move || current_record().score();
-                let best_score = move || best_record().score();
-                let millis = move || current_record().millis();
-                let best_millis = move || best_record().millis();
-                if score() > best_score() || (score() == best_score() && millis() < best_millis()) {
+                if score > best_score || (score == best_score && millis < best_millis) {
                     set_best_record.update(|record| {
-                        record.set_score(score());
-                        record.set_millis(millis());
+                        record.set_score(score);
+                        record.set_millis(millis);
                     });
                 }
+
+                let mut new = (rng.gen_range(0..rows), rng.gen_range(0..columns));
+                while current.contains(&new) {
+                    new = (rng.gen_range(0..rows), rng.gen_range(0..columns));
+                }
+                current.remove(&(row, col));
+                current.insert(new);
             });
             return;
         }
@@ -330,20 +356,18 @@ fn Game(
         game_over();
     };
 
-    window_event_listener(ev::keypress, move |ev| {
+    let on_trigger = move |ev: Event| {
         if let Some((row, col)) = hovered() {
             on_input(row, col);
             ev.prevent_default();
         } else {
             game_over()
         }
-    });
+    };
 
-    window_event_listener(ev::mousedown, move |_| {
-        if hovered().is_none() {
-            game_over();
-        }
-    });
+    window_event_listener(ev::keypress, move |ev| on_trigger(ev.into()));
+    window_event_listener(ev::touchstart, move |ev| on_trigger(ev.into()));
+    window_event_listener(ev::mousedown, move |ev| on_trigger(ev.into()));
 
     window_event_listener(ev::mouseover, move |ev| {
         use wasm_bindgen::JsCast;
@@ -357,17 +381,15 @@ fn Game(
 
         if element.class_list().contains("cell") {
             let attrs = element.attributes();
-            let row = attrs.get_named_item("data-row");
-            let col = attrs.get_named_item("data-col");
+            let row = attrs
+                .get_named_item("data-row")
+                .map(|a| Attr::value(&a).parse());
+            let col = attrs
+                .get_named_item("data-col")
+                .map(|a| Attr::value(&a).parse());
+
             match (row, col) {
-                (Some(row), Some(col)) => {
-                    let row = row.value().parse();
-                    let col = col.value().parse();
-                    match (row, col) {
-                        (Ok(row), Ok(col)) => set_hovered(Some((row, col))),
-                        _ => set_hovered(None),
-                    }
-                }
+                (Some(Ok(row)), Some(Ok(col))) => set_hovered(Some((row, col))),
                 _ => set_hovered(None),
             }
         } else {
@@ -386,8 +408,10 @@ fn Game(
 
         .grid:deep() {
             display: grid;
-            grid-template-columns: repeat(var(--columns), 0);
-            grid-template-rows: repeat(var(--rows), 0);
+            grid-template-columns: var(--columns) calc(100% / var(--columns));
+            grid-auto-columns: var(--columns) calc(100% / var(--columns));
+            grid-template-rows: calc(100% / var(--rows));
+            grid-auto-rows: calc(100% / var(--rows));
             width: 50%;
             height: 100%;
             border: 1px solid black;
@@ -424,31 +448,28 @@ fn Game(
 
     view! { cx, class = style,
         <div class="container">
-            <div class="grid">
+            <div class="grid" style=("--columns", columns) style=("--rows", rows)>
                 <For
-                    each=move || {0..rows.get()}
+                    each=move || 0..rows()
                     key=|&idx| idx
                     view=move |cx, row| {
                         view! { cx,
-                        <div>
-                            <For
-                                each=move || {0..columns.get()}
-                                key=|idx| *idx
-                                view=move |cx, col| {
-                                    view! { cx,
-                                        <div
-                                            class="cell"
-                                            data-row=row
-                                            data-col=col
-                                            style=("--columns", columns)
-                                            style=("--rows", rows)
-                                            class:active=move || current().contains(&(row, col))
-                                            on:mousedown=move |_| on_input(row, col)
-                                        />
+                            <div>
+                                <For
+                                    each=move || 0..columns()
+                                    key=|idx| *idx
+                                    view=move |cx, col| {
+                                        view! { cx,
+                                            <div
+                                                class="cell"
+                                                data-row=row
+                                                data-col=col
+                                                class:active=move || current().contains(&(row, col))
+                                            />
+                                        }
                                     }
-                                }
-                            />
-                        </div>
+                                />
+                            </div>
                         }
                     }
                 />

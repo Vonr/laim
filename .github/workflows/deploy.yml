@@ -53,7 +53,7 @@ jobs:
       id: check_trunk_version
       run: |
         echo "current=$(~/.cargo/bin/trunk --version)" >> $GITHUB_OUTPUT
-        echo "upstream=$(cargo search trunk --limit 1 | sed -En 's/^trunk = "([^"]*)".*/\1/p')" >> $GITHUB_OUTPUT
+        echo "upstream=$(cargo search trunk --limit 1 | sed -En 's/^trunk = "([^"]*)".*/trunk \1/p')" >> $GITHUB_OUTPUT
 
     - if: steps.check_trunk.outputs.needed == '1' || steps.check_trunk_version.outputs.current != steps.check_trunk_version.outputs.upstream
       run: cargo install trunk

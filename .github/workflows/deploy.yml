@@ -18,7 +18,7 @@ jobs:
       with:
         path: |
           ~/.cargo/bin
-        key: ${{ runner.os }}-cargo-${{ hashFiles('~/.cargo/bin/**') }}
+        key: ${{ runner.os }}-binaries
 
     - name: Cache artifacts
       uses: actions/cache@v2

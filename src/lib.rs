@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
@@ -26,7 +26,7 @@ pub fn App(cx: Scope) -> impl IntoView {
     );
     let history = create_signal(
         cx,
-        LocalStorage::get("history").unwrap_or_else(|_| Vec::new()),
+        LocalStorage::get("history").unwrap_or_else(|_| VecDeque::new()),
     );
 
     let current_record = create_signal(cx, Record::new(0, 0, 0, rows.0(), columns.0()));
@@ -35,16 +35,16 @@ pub fn App(cx: Scope) -> impl IntoView {
     let history_best = move || {
         let mut history_obj = history.0();
         history_obj.retain(|e: &Record| e.rows() == rows.0() && e.columns() == columns.0());
-        history_obj.sort_by(|a: &Record, b: &Record| {
-            use std::cmp::Ordering::*;
-            match a.score().cmp(&b.score()) {
-                Equal => b.millis().cmp(&a.millis()),
-                otherwise => otherwise,
-            }
-        });
         history_obj
-            .last()
+            .iter()
             .copied()
+            .max_by(|a, b| {
+                use std::cmp::Ordering::*;
+                match a.score().cmp(&b.score()) {
+                    Equal => b.millis().cmp(&a.millis()),
+                    otherwise => otherwise,
+                }
+            })
             .unwrap_or_else(|| Record::new(0, 0, 0, rows.0(), columns.0()))
     };
 
@@ -138,7 +138,7 @@ where
 }
 
 #[component]
-fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
+fn GameHistory(cx: Scope, history: ReadSignal<VecDeque<Record>>) -> impl IntoView {
     view! { cx,
         <table class="GameHistory">
             <tr class="GameHistory">
@@ -172,7 +172,7 @@ fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
 fn Game(
     cx: Scope,
     current: SignalPair<Positions>,
-    history: SignalPair<Vec<Record>>,
+    history: SignalPair<VecDeque<Record>>,
     columns: ReadSignal<usize>,
     rows: ReadSignal<usize>,
     active: ReadSignal<usize>,
@@ -206,16 +206,13 @@ fn Game(
         let curr = current_record();
         if curr.score() > 1 {
             set_history.update(|history| {
-                history.insert(
-                    0,
-                    Record::new(
-                        history.len() as u64 + 1,
-                        curr.score(),
-                        curr.millis(),
-                        rows(),
-                        columns(),
-                    ),
-                )
+                history.push_front(Record::new(
+                    history.len() as u64 + 1,
+                    curr.score(),
+                    curr.millis(),
+                    rows(),
+                    columns(),
+                ))
             });
 
             let _ = LocalStorage::set("history", history());

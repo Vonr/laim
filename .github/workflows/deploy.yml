@@ -60,7 +60,7 @@ jobs:
 
     - name: Build site with trunk
       run: |
-        trunk build
+        trunk build --release
 
     - uses: peaceiris/actions-gh-pages@v3
       if: ${{ github.ref == 'refs/heads/master' }}

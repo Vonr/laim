@@ -56,7 +56,7 @@ jobs:
         echo "upstream=$(cargo search trunk --limit 1 | sed -En 's/^trunk = "([^"]*)".*/trunk \1/p')" >> $GITHUB_OUTPUT
 
     - if: steps.check_trunk.outputs.needed == '1' || steps.check_trunk_version.outputs.current != steps.check_trunk_version.outputs.upstream
-      run: cargo install trunk
+      run: cargo install --force trunk
 
     - name: Build site with trunk
       run: |

@@ -1099,6 +1099,7 @@ dependencies = [
  "cfg-if",
  "futures",
  "indexmap",
+ "js-sys",
  "rustc-hash",
  "self_cell",
  "serde",
@@ -1107,6 +1108,9 @@ dependencies = [
  "slotmap",
  "thiserror",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]

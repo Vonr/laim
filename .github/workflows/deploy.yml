@@ -29,7 +29,12 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - uses: actions-rs/cargo@v1
+    - name: Check if trunk binary exists
+      id: check_trunk
+      run: echo "::set-output name=needed::$([ -f ~/.cargo/bin/trunk ]; echo $?)"
+
+    - if: steps.check_trunk.outputs.needed == '1'
+      uses: actions-rs/cargo@v1
       with:
         command: install
         args: trunk

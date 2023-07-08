@@ -13,12 +13,19 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: actions/cache@v2
+    - name: Cache installed binaries
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin
+        key: ${{ runner.os }}-cargo-${{ hashFiles('~/.cargo/bin/**') }}
+
+    - name: Cache artifacts
+      uses: actions/cache@v2
       with:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          ~/.cargo/bin
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 

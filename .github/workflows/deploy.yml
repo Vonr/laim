@@ -28,6 +28,10 @@ jobs:
           ~/.cargo/.crates2.json
         key: ${{ runner.os }}-metadata
 
+    - name: Get Cargo.lock hash
+      id: lock_hash
+      run: echo "hash=$(awk '{if(prev!="name = \"laim\""&&$0!~/^version = /){print};prev=$0}' Cargo.lock | sha256sum | awk '{print$1}')" >> $GITHUB_OUTPUT
+
     - name: Cache artifacts
       uses: actions/cache@v2
       with:
@@ -35,7 +39,7 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-${{ steps.check_trunk.outputs.needed }}
 
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1

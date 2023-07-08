@@ -20,6 +20,14 @@ jobs:
           ~/.cargo/bin
         key: ${{ runner.os }}-binaries
 
+    - name: Cache .cargo metadata
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/.crates.toml
+          ~/.cargo/.crates2.json
+        key: ${{ runner.os }}-metadata
+
     - name: Cache artifacts
       uses: actions/cache@v2
       with:
@@ -29,16 +37,6 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-    - name: Check if trunk binary exists
-      id: check_trunk
-      run: echo "needed=$([ -f ~/.cargo/bin/trunk ]; echo $?)" >> $GITHUB_OUTPUT
-
-    - if: steps.check_trunk.outputs.needed == '1'
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: trunk
-
     - name: Install latest nightly
       uses: actions-rs/toolchain@v1
       with:
@@ -46,7 +44,22 @@ jobs:
         default: true
         target: wasm32-unknown-unknown
 
-    - run: |
+    - name: Check if trunk binary exists
+      id: check_trunk
+      run: echo "needed=$([ -f ~/.cargo/bin/trunk ]; echo $?)" >> $GITHUB_OUTPUT
+
+    - name: Check trunk versions
+      if: steps.check_trunk.outputs.needed == '0'
+      id: check_trunk_version
+      run: |
+        echo "current=$(~/.cargo/bin/trunk --version)" >> $GITHUB_OUTPUT
+        echo "upstream=$(cargo search trunk --limit 1 | sed -En 's/^trunk = "([^"]*)".*/\1/p')" >> $GITHUB_OUTPUT
+
+    - if: steps.check_trunk.outputs.needed == '1' || steps.check_trunk_version.outputs.current != steps.check_trunk_version.outputs.upstream
+      run: cargo install trunk
+
+    - name: Build site with trunk
+      run: |
         trunk build
 
     - uses: peaceiris/actions-gh-pages@v3

@@ -10,12 +10,11 @@ console_error_panic_hook = "0.1.7"
 getrandom = { version = "0.2.9", features = ["js"] }
 gloo-storage = "0.2.2"
 js-sys = "0.3.63"
-leptos = { git = "https://github.com/leptos-rs/leptos", rev = "2d418dae9342073bd01f4d817bff894e1c7d5fd6" }
+leptos = { version = "0.4.2", features = ["nightly"] }
 rand = "0.8.5"
 rustc-hash = "1.1.0"
 serde = "1.0.163"
 serde_json = "1.0.96"
-stylers = "0.3.1"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 tracing-subscriber-wasm = "0.1.0"

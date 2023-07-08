@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use gloo_storage::{LocalStorage, Storage};
 use leptos::*;
 use rand::Rng;
-use stylers::*;
 use web_sys::{Attr, Event};
 use web_time::Instant;
 
@@ -194,7 +193,7 @@ where
                 type="number"
                 min=min
                 max=max
-                value={signal.0}
+                value=signal.0
                 on:change=move |ev| {
                     signal.1(event_target_value(&ev).parse().unwrap_or_else(|_| signal.0()));
                     current.update(|current| current.clear());
@@ -208,48 +207,27 @@ where
 
 #[component]
 fn GameHistory(cx: Scope, history: ReadSignal<Vec<Record>>) -> impl IntoView {
-    let style = style! {"GameHistory",
-        table {
-            max-width: 90%;
-            border-collapse: collapse;
-            border: 1px solid black;
-            margin: auto;
-        }
-
-        th, td {
-            text-align: center;
-            border: 1px solid black;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            text-align: left;
-        }
-
-        tr>:nth-child(1) {
-            width: 8rem;
-        }
-    };
-
-    view! { cx, class = style,
-        <table>
-            <tr>
-                <th>"Position"</th>
-                <th>"Score"</th>
-                <th>"Score/s"</th>
-                <th>"Seconds"</th>
-                <th>"Size"</th>
+    view! { cx,
+        <table class="GameHistory">
+            <tr class="GameHistory">
+                <th class="GameHistory">"Position"</th>
+                <th class="GameHistory">"Score"</th>
+                <th class="GameHistory">"Score/s"</th>
+                <th class="GameHistory">"Seconds"</th>
+                <th class="GameHistory">"Size"</th>
             </tr>
 
             <For
                 each=history
                 key=|record| record.position()
                 view=move |cx, record| {
-                    view! { cx, class = style,
-                        <tr>
-                            <td>{record.position()}</td>
-                            <td>{record.score()}</td>
-                            <td>{format!("{:.2}", (record.score() * 1000) as f64 / record.millis() as f64)}</td>
-                            <td>{format!("{:.2}", record.millis() as f64 / 1000f64)}</td>
-                            <td>{format!("{}×{}", record.rows(), record.columns())}</td>
+                    view! { cx,
+                        <tr class="GameHistory">
+                            <td class="GameHistory">{record.position()}</td>
+                            <td class="GameHistory">{record.score()}</td>
+                            <td class="GameHistory">{format!("{:.2}", (record.score() * 1000) as f64 / record.millis() as f64)}</td>
+                            <td class="GameHistory">{format!("{:.2}", record.millis() as f64 / 1000f64)}</td>
+                            <td class="GameHistory">{format!("{}×{}", record.rows(), record.columns())}</td>
                         </tr>
                     }
                 }
@@ -365,7 +343,7 @@ fn Game(
         }
     };
 
-    window_event_listener(ev::keypress, move |ev| on_trigger(ev.into()));
+    window_event_listener(ev::keydown, move |ev| on_trigger(ev.into()));
     window_event_listener(ev::touchstart, move |ev| on_trigger(ev.into()));
     window_event_listener(ev::mousedown, move |ev| on_trigger(ev.into()));
 
@@ -397,71 +375,22 @@ fn Game(
         }
     });
 
-    let style = style! {"Game",
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 90vh;
-            margin-top: 1rem;
-        }
-
-        .grid:deep() {
-            display: grid;
-            grid-template-columns: var(--columns) calc(100% / var(--columns));
-            grid-auto-columns: var(--columns) calc(100% / var(--columns));
-            grid-template-rows: calc(100% / var(--rows));
-            grid-auto-rows: calc(100% / var(--rows));
-            width: 50%;
-            height: 100%;
-            border: 1px solid black;
-            box-sizing: border-box;
-        }
-
-        .cell:deep() {
-            display: inline-block;
-            border: 1px solid black;
-            box-sizing: border-box;
-            width: calc(100% / var(--columns));
-            height: 100%;
-        }
-
-        .active:deep() {
-            background-color: black;
-            border: 0.5px solid grey;
-            -webkit-animation-name: fadeIn;
-            animation-name: fadeIn;
-            -webkit-animation-duration: 0.15s;
-            animation-duration: 0.15s;
-        }
-
-         @-webkit-keyframes fadeIn {
-            0% {opacity: 0;}
-            100% {opacity: 1;}
-         }
-
-         @keyframes fadeIn {
-            0% {opacity: 0;}
-            100% {opacity: 1;}
-         }
-    };
-
-    view! { cx, class = style,
-        <div class="container">
-            <div class="grid" style=("--columns", columns) style=("--rows", rows)>
+    view! { cx,
+        <div class="Game container">
+            <div class="Game grid" style=("--columns", columns) style=("--rows", rows)>
                 <For
                     each=move || 0..rows()
                     key=|&idx| idx
                     view=move |cx, row| {
                         view! { cx,
-                            <div>
+                            <div class="Game">
                                 <For
                                     each=move || 0..columns()
                                     key=|idx| *idx
                                     view=move |cx, col| {
                                         view! { cx,
                                             <div
-                                                class="cell"
+                                                class="Game cell"
                                                 data-row=row
                                                 data-col=col
                                                 class:active=move || current().contains(&(row, col))

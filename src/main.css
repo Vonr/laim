@@ -1,0 +1,65 @@
+table.GameHistory {
+    max-width: 90%;
+    border-collapse: collapse;
+    border: 1px solid black;
+    margin: auto;
+}
+
+th.GameHistory, td.GameHistory {
+    text-align: center;
+    border: 1px solid black;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    text-align: left;
+}
+
+tr>:nth-child(1).GameHistory {
+    width: 8rem;
+}
+
+.Game.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 90vh;
+    margin-top: 1rem;
+}
+
+.Game.grid {
+    display: grid;
+    grid-template-columns: var(--columns) calc(100% / var(--columns));
+    grid-auto-columns: var(--columns) calc(100% / var(--columns));
+    grid-template-rows: calc(100% / var(--rows));
+    grid-auto-rows: calc(100% / var(--rows));
+    width: 50%;
+    height: 100%;
+    border: 1px solid black;
+    box-sizing: border-box;
+}
+
+.Game.cell {
+    display: inline-block;
+    border: 1px solid black;
+    box-sizing: border-box;
+    width: calc(100% / var(--columns));
+    height: 100%;
+}
+
+.Game.active {
+    background-color: black;
+    border: 0.5px solid grey;
+    -webkit-animation-name: fadeIn;
+    animation-name: fadeIn;
+    -webkit-animation-duration: 0.15s;
+    animation-duration: 0.15s;
+}
+
+@-webkit-keyframes fadeIn {
+    0% {opacity: 0;}
+    100% {opacity: 1;}
+}
+
+@keyframes fadeIn {
+    0% {opacity: 0;}
+    100% {opacity: 1;}
+}

@@ -990,11 +990,11 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper1768 = function(arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper1764 = function(arg0, arg1, arg2) {
         const ret = makeMutClosure(arg0, arg1, 89, __wbg_adapter_36);
         return ret;
     };
-    imports.wbg.__wbindgen_closure_wrapper2006 = function(arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper2003 = function(arg0, arg1, arg2) {
         const ret = makeMutClosure(arg0, arg1, 113, __wbg_adapter_36);
         return ret;
     };

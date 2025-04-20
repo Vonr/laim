@@ -2,17 +2,17 @@ cargo-features = ["codegen-backend"]
 
 [package]
 name = "laim"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "0.22.1"
 console_error_panic_hook = "0.1"
 getrandom = { version = "0.3", features = ["wasm_js"] }
 js-sys = "0.3"
 leptos = { version = "0.7", features = ["nightly", "csr"] }
+leptos_router = { version = "0.7.8", features = ["nightly"] }
 rand = "0.9"
 rustc-hash = "2"
 tracing = "0.1"

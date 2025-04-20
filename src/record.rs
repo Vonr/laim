@@ -1,5 +1,3 @@
-use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Record {
     pub position: u32,
@@ -30,38 +28,33 @@ impl Record {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() != 36 {
+    pub fn from_str(str: &str) -> Option<Self> {
+        let mut iter = str.split(',');
+        let version = iter.next()?.parse().ok()?;
+
+        let ret = match version {
+            1 => Self {
+                position: iter.next()?.parse().ok()?,
+                score: iter.next()?.parse().ok()?,
+                millis: iter.next()?.parse().ok()?,
+                rows: iter.next()?.parse().ok()?,
+                columns: iter.next()?.parse().ok()?,
+                active: iter.next()?.parse().ok()?,
+            },
+            _ => return None,
+        };
+
+        if iter.next().is_some() {
             return None;
         }
 
-        Some(Self {
-            position: u32::from_le_bytes(bytes[..4].try_into().unwrap()),
-            score: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            millis: u128::from_le_bytes(bytes[8..24].try_into().unwrap()),
-            rows: u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
-            columns: u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
-            active: u32::from_le_bytes(bytes[32..36].try_into().unwrap()),
-        })
-    }
-
-    pub fn from_str(str: &str) -> Option<Self> {
-        BASE64_STANDARD_NO_PAD
-            .decode(str)
-            .ok()
-            .as_deref()
-            .map(Self::from_bytes)?
+        Some(ret)
     }
 
     pub fn to_string(&self) -> String {
-        let mut bytes = Vec::with_capacity(std::mem::size_of::<Self>());
-        bytes.extend_from_slice(&self.position.to_le_bytes());
-        bytes.extend_from_slice(&self.score.to_le_bytes());
-        bytes.extend_from_slice(&self.millis.to_le_bytes());
-        bytes.extend_from_slice(&self.rows.to_le_bytes());
-        bytes.extend_from_slice(&self.columns.to_le_bytes());
-        bytes.extend_from_slice(&self.active.to_le_bytes());
-
-        BASE64_STANDARD_NO_PAD.encode(bytes)
+        format!(
+            "1,{},{},{},{},{},{}",
+            self.position, self.score, self.millis, self.rows, self.columns, self.active
+        )
     }
 }

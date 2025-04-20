@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::collections::{HashSet, VecDeque};
 
 use leptos::prelude::*;
@@ -46,10 +48,10 @@ pub fn App() -> impl IntoView {
     let history = local_storage
         .get_item("history")
         .unwrap()
-        .and_then(|s| {
+        .map(|s| {
             s.split('\n')
-                .map(Record::from_str)
-                .collect::<Option<VecDeque<_>>>()
+                .filter_map(Record::from_str)
+                .collect::<VecDeque<_>>()
         })
         .unwrap_or_else(VecDeque::new);
     if history.is_empty() {

@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::mount::mount_to_body;
 use tracing_subscriber::{fmt, util::SubscriberInitExt};
 use tracing_subscriber_wasm::MakeConsoleWriter;
 
@@ -18,5 +18,5 @@ fn main() {
         .finish()
         .init();
 
-    mount_to_body(|cx| view! { cx, <App/> })
+    mount_to_body(App)
 }

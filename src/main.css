@@ -5,16 +5,13 @@ table.GameHistory {
     margin: auto;
 }
 
-th.GameHistory, td.GameHistory {
+th.GameHistory,
+td.GameHistory {
     text-align: center;
     border: 1px solid black;
     padding-left: 1rem;
     padding-right: 1rem;
     text-align: left;
-}
-
-tr>:nth-child(1).GameHistory {
-    width: 8rem;
 }
 
 .Game.container {
@@ -55,11 +52,21 @@ tr>:nth-child(1).GameHistory {
 }
 
 @-webkit-keyframes fadeIn {
-    0% {opacity: 0;}
-    100% {opacity: 1;}
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 @keyframes fadeIn {
-    0% {opacity: 0;}
-    100% {opacity: 1;}
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }

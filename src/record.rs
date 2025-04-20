@@ -1,62 +1,67 @@
-use serde::*;
+use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub struct Record(u64, u64, u128, usize, usize);
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Record {
+    pub position: u32,
+    pub score: u32,
+    pub millis: u128,
+    pub rows: u32,
+    pub columns: u32,
+    pub active: u32,
+}
 
-#[allow(dead_code)]
 impl Record {
     #[inline]
-    pub const fn new(position: u64, score: u64, millis: u128, rows: usize, columns: usize) -> Self {
-        Self(position, score, millis, rows, columns)
+    pub const fn new(
+        position: u32,
+        score: u32,
+        millis: u128,
+        rows: u32,
+        columns: u32,
+        active: u32,
+    ) -> Self {
+        Self {
+            position,
+            score,
+            millis,
+            rows,
+            columns,
+            active,
+        }
     }
 
-    #[inline]
-    pub const fn position(&self) -> u64 {
-        self.0
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != 36 {
+            return None;
+        }
+
+        Some(Self {
+            position: u32::from_le_bytes(bytes[..4].try_into().unwrap()),
+            score: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+            millis: u128::from_le_bytes(bytes[8..24].try_into().unwrap()),
+            rows: u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
+            columns: u32::from_le_bytes(bytes[28..32].try_into().unwrap()),
+            active: u32::from_le_bytes(bytes[32..36].try_into().unwrap()),
+        })
     }
 
-    #[inline]
-    pub fn set_position(&mut self, value: u64) {
-        self.0 = value;
+    pub fn from_str(str: &str) -> Option<Self> {
+        BASE64_STANDARD_NO_PAD
+            .decode(str)
+            .ok()
+            .as_deref()
+            .map(Self::from_bytes)?
     }
 
-    #[inline]
-    pub const fn score(&self) -> u64 {
-        self.1
-    }
+    pub fn to_string(&self) -> String {
+        let mut bytes = Vec::with_capacity(std::mem::size_of::<Self>());
+        bytes.extend_from_slice(&self.position.to_le_bytes());
+        bytes.extend_from_slice(&self.score.to_le_bytes());
+        bytes.extend_from_slice(&self.millis.to_le_bytes());
+        bytes.extend_from_slice(&self.rows.to_le_bytes());
+        bytes.extend_from_slice(&self.columns.to_le_bytes());
+        bytes.extend_from_slice(&self.active.to_le_bytes());
 
-    #[inline]
-    pub fn set_score(&mut self, value: u64) {
-        self.1 = value;
-    }
-
-    #[inline]
-    pub const fn millis(&self) -> u128 {
-        self.2
-    }
-
-    #[inline]
-    pub fn set_millis(&mut self, value: u128) {
-        self.2 = value;
-    }
-
-    #[inline]
-    pub const fn rows(&self) -> usize {
-        self.3
-    }
-
-    #[inline]
-    pub fn set_rows(&mut self, value: usize) {
-        self.3 = value;
-    }
-
-    #[inline]
-    pub const fn columns(&self) -> usize {
-        self.4
-    }
-
-    #[inline]
-    pub fn set_columns(&mut self, value: usize) {
-        self.4 = value;
+        BASE64_STANDARD_NO_PAD.encode(bytes)
     }
 }

@@ -402,10 +402,13 @@ fn Game(
                     if last_rows.is_none_or(|v| v.get() != val.rows) {
                         writeln!(history_str, "\t\t\t{}", val.rows).unwrap();
                         last_rows = NonZeroU32::new(val.rows);
+                        last_columns = None;
+                        last_active = None;
                     }
                     if last_columns.is_none_or(|v| v.get() != val.columns) {
                         writeln!(history_str, "\t\t{}", val.columns).unwrap();
                         last_columns = NonZeroU32::new(val.columns);
+                        last_active = None;
                     }
 
                     if last_active.is_none_or(|v| v.get() != val.active) {

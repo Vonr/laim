@@ -15,14 +15,14 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Cache installed binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/bin
         key: ${{ runner.os }}-binaries
 
     - name: Cache .cargo metadata
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/.crates.toml
@@ -34,7 +34,7 @@ jobs:
       run: echo "hash=$(awk '{if(prev!="name = \"laim\""&&$0!~/^version = /){print};prev=$0}' Cargo.lock | sha256sum | awk '{print$1}')" >> $GITHUB_OUTPUT
 
     - name: Cache artifacts
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry

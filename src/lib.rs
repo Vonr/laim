@@ -175,6 +175,46 @@ fn Root() -> impl IntoView {
 
     let history = signal(history);
 
+    Effect::new(move |_| {
+        let mut history_str = String::new();
+        writeln!(history_str, "{}", 1).unwrap();
+        let mut history_vals: Vec<Record> = Vec::new();
+        history.0().values().for_each(|v| history_vals.extend(v));
+
+        if !history_vals.is_empty() {
+            history_vals.sort_by_key(|v| v.active);
+            history_vals.sort_by_key(|v| v.columns);
+            history_vals.sort_by_key(|v| v.rows);
+
+            let mut last_rows: Option<NonZeroU32> = None;
+            let mut last_columns: Option<NonZeroU32> = None;
+            let mut last_active: Option<NonZeroU32> = None;
+
+            for val in history_vals {
+                if last_rows.is_none_or(|v| v.get() != val.rows) {
+                    writeln!(history_str, "\t\t\t{}", val.rows).unwrap();
+                    last_rows = NonZeroU32::new(val.rows);
+                    last_columns = None;
+                    last_active = None;
+                }
+                if last_columns.is_none_or(|v| v.get() != val.columns) {
+                    writeln!(history_str, "\t\t{}", val.columns).unwrap();
+                    last_columns = NonZeroU32::new(val.columns);
+                    last_active = None;
+                }
+
+                if last_active.is_none_or(|v| v.get() != val.active) {
+                    writeln!(history_str, "\t{}", val.active).unwrap();
+                    last_active = NonZeroU32::new(val.active);
+                }
+
+                writeln!(history_str, "{},{},{}", val.position, val.score, val.millis).unwrap();
+            }
+        }
+
+        local_storage.set_item("history", &history_str).unwrap();
+    });
+
     let current_record = signal(Record::new(
         0,
         0,
@@ -239,14 +279,13 @@ fn Root() -> impl IntoView {
             <U32Input name="columns" label="Columns: " min=2 max=|| u32::MAX signal=columns current=current.1 onchange=update_current />
             <U32Input name="active" label="Active: " min=1 max=max_active signal=active current=current.1 onchange=update_current />
             <button on:click=move |_| {
-                history.1.update(|history| {
-                    history.clear();
-                    local_storage.delete("history").unwrap();
+                history.1.update(|h| {
+                    h.insert((rows.0(), columns.0(), active.0()), VecDeque::new());
                 });
             }>"Clear History"</button>
         </div>
 
-        <Game current={current} history={history} rows={rows.0} columns={columns.0} active={active.0} current_record={current_record} />
+        <Game current={current} history={history.1} rows={rows.0} columns={columns.0} active={active.0} current_record={current_record} />
 
         <h3 style="text-align: center;">{score_text}</h3>
         <GameHistory history={history.0} rows={rows.0} columns={columns.0} active={active.0} />
@@ -328,14 +367,13 @@ fn GameHistory(
 #[component]
 fn Game(
     current: SignalPair<Positions>,
-    history: SignalPair<FxHashMap<(u32, u32, u32), VecDeque<Record>>>,
+    history: WriteSignal<FxHashMap<(u32, u32, u32), VecDeque<Record>>>,
     columns: ReadSignal<u32>,
     rows: ReadSignal<u32>,
     active: ReadSignal<u32>,
     current_record: SignalPair<Record>,
 ) -> impl IntoView {
     let (current, set_current) = current;
-    let (history, set_history) = history;
     let (current_record, set_current_record) = current_record;
 
     let (start, set_start) = signal(Instant::now());
@@ -360,9 +398,8 @@ fn Game(
     });
 
     let game_over = move || {
-        let local_storage = web_sys::window().unwrap().local_storage().unwrap().unwrap();
         if current_record().score > 1 {
-            set_history.update(|history| {
+            history.update(|history| {
                 let entry = history
                     .entry((
                         rows.get_untracked(),
@@ -380,47 +417,6 @@ fn Game(
                     active.get_untracked(),
                 ))
             });
-
-            let mut history_str = String::new();
-            writeln!(history_str, "{}", 1).unwrap();
-            let mut history_vals: Vec<Record> = Vec::new();
-            history
-                .get_untracked()
-                .values()
-                .for_each(|v| history_vals.extend(v));
-
-            if !history_vals.is_empty() {
-                history_vals.sort_by_key(|v| v.active);
-                history_vals.sort_by_key(|v| v.columns);
-                history_vals.sort_by_key(|v| v.rows);
-
-                let mut last_rows: Option<NonZeroU32> = None;
-                let mut last_columns: Option<NonZeroU32> = None;
-                let mut last_active: Option<NonZeroU32> = None;
-
-                for val in history_vals {
-                    if last_rows.is_none_or(|v| v.get() != val.rows) {
-                        writeln!(history_str, "\t\t\t{}", val.rows).unwrap();
-                        last_rows = NonZeroU32::new(val.rows);
-                        last_columns = None;
-                        last_active = None;
-                    }
-                    if last_columns.is_none_or(|v| v.get() != val.columns) {
-                        writeln!(history_str, "\t\t{}", val.columns).unwrap();
-                        last_columns = NonZeroU32::new(val.columns);
-                        last_active = None;
-                    }
-
-                    if last_active.is_none_or(|v| v.get() != val.active) {
-                        writeln!(history_str, "\t{}", val.active).unwrap();
-                        last_active = NonZeroU32::new(val.active);
-                    }
-
-                    writeln!(history_str, "{},{},{}", val.position, val.score, val.millis).unwrap();
-                }
-            }
-
-            local_storage.set_item("history", &history_str).unwrap();
         }
         set_current_record.update(|record| record.score = 0);
     };

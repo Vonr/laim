@@ -100,7 +100,7 @@ fn Root() -> impl IntoView {
                             return FxHashMap::default();
                         };
 
-                        while s.starts_with("\t\t") {
+                        while s.starts_with("\t\t") && !s.starts_with("\t\t\t") {
                             let Some((columns, rem)) = s.split_once('\n') else {
                                 return FxHashMap::default();
                             };
@@ -111,7 +111,7 @@ fn Root() -> impl IntoView {
                                 return FxHashMap::default();
                             };
 
-                            while s.starts_with("\t") {
+                            while s.starts_with("\t") && !s.starts_with("\t\t") {
                                 let Some((active, rem)) = s.split_once('\n') else {
                                     return FxHashMap::default();
                                 };
@@ -511,6 +511,7 @@ fn Game(
                                                 data-row=row
                                                 data-col=col
                                                 class:active=move || current().contains(&(row, col))
+                                                oncontextmenu="return false;"
                                             />
                                         }
                                     }

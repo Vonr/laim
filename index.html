@@ -1,16 +1,27 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laim</title>
 
     <link rel="stylesheet" href="/laim/main.css">
-
-<link rel="preload" href="/laim/laim-4f0053bb90ecf4b2_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/laim/laim-4f0053bb90ecf4b2.js"></head>
+<link rel="modulepreload" href="/laim/laim-17d010745bb58f27.js" crossorigin="anonymous" integrity="sha384-ohvvHKwoV22IqAubF5HXcmmL3PiX+4U+0pSFLo4z0qD10l6SGU9ySJnuq6gpwnq4"><link rel="preload" href="/laim/laim-17d010745bb58f27_bg.wasm" crossorigin="anonymous" integrity="sha384-wxkXYnRjb4+8coOMDvzZkugsryLiU0bi2hHxFaKbegToSGxEPAsrvJrzn/+xPp35" as="fetch" type="application/wasm"></head>
 
 <body>
 
+<script type="module">
+import init, * as bindings from '/laim/laim-17d010745bb58f27.js';
+const wasm = await init({ module_or_path: '/laim/laim-17d010745bb58f27_bg.wasm' });
 
 
-<script type="module">import init from '/laim/laim-4f0053bb90ecf4b2.js';init('/laim/laim-4f0053bb90ecf4b2_bg.wasm');</script></body></html>
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+
+</html>

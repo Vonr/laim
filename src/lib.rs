@@ -82,71 +82,40 @@ fn Root() -> impl IntoView {
     let history = local_storage
         .get_item("history")
         .unwrap_or_else(|_| Some(String::new()))
-        .map(|s| {
+        .and_then(|s| {
             let mut m = FxHashMap::<(u32, u32, u32), VecDeque<Record>>::default();
-            let Some((version, mut s)) = s.split_once('\n') else {
-                return m;
-            };
+            let (version, mut s) = s.split_once('\n')?;
 
             match version {
                 "1" => {
                     while s.starts_with("\t\t\t") {
-                        let Some((rows, rem)) = s.split_once('\n') else {
-                            return FxHashMap::default();
-                        };
+                        let (rows, rem) = s.split_once('\n')?;
                         s = rem;
 
-                        let Ok(rows) = rows.trim_start_matches("\t\t\t").parse::<u32>() else {
-                            return FxHashMap::default();
-                        };
+                        let rows = rows.trim_start_matches("\t\t\t").parse::<u32>().ok()?;
 
                         while s.starts_with("\t\t") && !s.starts_with("\t\t\t") {
-                            let Some((columns, rem)) = s.split_once('\n') else {
-                                return FxHashMap::default();
-                            };
+                            let (columns, rem) = s.split_once('\n')?;
                             s = rem;
 
-                            let Ok(columns) = columns.trim_start_matches("\t\t").parse::<u32>()
-                            else {
-                                return FxHashMap::default();
-                            };
+                            let columns = columns.trim_start_matches("\t\t").parse::<u32>().ok()?;
 
                             while s.starts_with("\t") && !s.starts_with("\t\t") {
-                                let Some((active, rem)) = s.split_once('\n') else {
-                                    return FxHashMap::default();
-                                };
+                                let (active, rem) = s.split_once('\n')?;
                                 s = rem;
 
-                                let Ok(active) = active.trim_start_matches("\t").parse::<u32>()
-                                else {
-                                    return FxHashMap::default();
-                                };
+                                let active = active.trim_start_matches("\t").parse::<u32>().ok()?;
 
                                 while !s.starts_with("\t") {
-                                    let Some((record, rem)) = s.split_once('\n') else {
-                                        return FxHashMap::default();
-                                    };
+                                    let (record, rem) = s.split_once('\n')?;
                                     s = rem;
 
-                                    let Some((pos, score_millis)) = record.split_once(',') else {
-                                        return FxHashMap::default();
-                                    };
+                                    let (pos, score_millis) = record.split_once(',')?;
+                                    let (score, millis) = score_millis.split_once(',')?;
 
-                                    let Some((score, millis)) = score_millis.split_once(',') else {
-                                        return FxHashMap::default();
-                                    };
-
-                                    let Ok(pos) = pos.parse::<u32>() else {
-                                        return FxHashMap::default();
-                                    };
-
-                                    let Ok(score) = score.parse::<u32>() else {
-                                        return FxHashMap::default();
-                                    };
-
-                                    let Ok(millis) = millis.parse::<u128>() else {
-                                        return FxHashMap::default();
-                                    };
+                                    let pos = pos.parse::<u32>().ok()?;
+                                    let score = score.parse::<u32>().ok()?;
+                                    let millis = millis.parse::<u128>().ok()?;
 
                                     m.entry((rows, columns, active))
                                         .or_insert_with(VecDeque::new)
@@ -155,7 +124,7 @@ fn Root() -> impl IntoView {
                                         ));
 
                                     if s.is_empty() {
-                                        return m;
+                                        return Some(m);
                                     }
                                 }
                             }
@@ -165,7 +134,7 @@ fn Root() -> impl IntoView {
                 _ => {}
             }
 
-            return m;
+            return Some(m);
         })
         .unwrap_or_else(FxHashMap::default);
 
